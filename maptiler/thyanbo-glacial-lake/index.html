@@ -1,0 +1,251 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Thyanbo Glacial Lake Outburst</title>
+    <script src="https://cdn.maptiler.com/maptiler-sdk-js/v2.2.2/maptiler-sdk.umd.js"></script>
+    <link href="https://cdn.maptiler.com/maptiler-sdk-js/v2.2.2/maptiler-sdk.css" rel="stylesheet" />
+    <script src="https://cdn.maptiler.com/maptiler-geocoding-control/v0.0.98/maptilersdk.umd.js"></script>
+    <link href="https://cdn.maptiler.com/maptiler-geocoding-control/v0.0.98/style.css" rel="stylesheet">
+    <!-- Favicon for the webpage -->
+    <link rel="icon" href="image/APN.png" type="image/png">
+
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+        }
+
+        #map {
+            position: absolute;
+            top: 0;
+            bottom: 0;
+            width: 100%;
+            height: 100vh;
+        }
+
+        #layer-control {
+            position: absolute;
+            bottom: 10px;
+            left: 10px;
+            background: rgb(255, 255, 255, 0.5);
+            padding: 10px;
+            font-size: 14px;
+            border-radius: 10px;
+            box-shadow: 0 0 5px rgba(0,0,0,0.1);
+            z-index: 10;
+        }
+
+        #layer-control h4 {
+            text-align: center;
+            margin: 0; /* Set all margins to 0 initially */
+            margin-bottom: 2px; /* Add bottom margin */
+            font-weight: bold;
+            font-size: 15px;
+            color: #0c0b0b;
+            text-decoration: underline;
+        }
+
+        #layer-control input {
+            margin-right: 10px;
+        }
+
+        #title {
+            position: absolute;
+            top: 10px;
+            left: 10px; /* Change from right to left*/
+            background-color: white;
+            box-shadow: 0 0 5px rgba(0,0,0,0.1);
+            padding: 1px 3px;
+            font-size: 16px; /* Reduced font size for mobile */
+            /*line-height: 1.02px;*/
+            color: #000000;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+            z-index: 10;
+            font-weight: bold;
+        }
+
+        .maptiler-geocoder {
+            right: 20px;
+            z-index: 10;
+        }
+        
+        
+         /* Media Query for Mobile Devices */
+        @media screen and (max-width: 768px) {
+            #layer-control {
+                bottom: 7px;
+                left: 5px;
+                font-size: 8px;
+                padding: 3px;
+            }
+
+            #layer-control h4 {
+                font-size: 10px;
+                margin: 0;
+            }
+
+            #title {
+                top: 50px;
+                left: 5px;
+                font-size: 12px;
+                padding: 2px 4px;
+                max-width: 250px; /* Set a max width for the title */
+                word-wrap: break-word;
+            }
+
+            #map {
+                height: 100vh;
+            }
+
+            #layer-control input {
+                margin-right: 5px;
+            }
+
+            .maptiler-geocoder {
+                right: 10px;
+            }
+           
+        }
+        
+    </style>
+</head>
+<body>
+    <div id="title">Thyanbo glacial lake sweeps away Thame Village on August 16 2024</div>
+    <div id="map"></div>
+    
+    <div id="layer-control">
+        <h4>Layer Control</h4>
+        <label>
+            <input type="checkbox" id="river-thame-checkbox" checked>
+            <span style="width: 15px; height: 2px; background-color: blue; display: inline-block; vertical-align: middle; margin-right: 5px;"></span>
+            Thame Khola
+        </label><br>
+        <label>
+            <input type="checkbox" id="august14-checkbox">
+            <span style="background-color: #33a02c; opacity: 0.7; width: 15px; height: 15px; display: inline-block; vertical-align: middle; border-radius: 3px; margin-right: 5px;"></span>
+            Before GLOF (Aug-14)
+        </label><br>
+        <label>
+            <input type="checkbox" id="august19-checkbox" checked>
+            <span style="background-color: #e31a1c; opacity: 0.7; width: 15px; height: 15px; display: inline-block; vertical-align: middle; border-radius: 3px; margin-right: 5px;"></span>
+            After GLOF (Aug-19)
+        </label><br>
+        <label>
+            <input type="checkbox" id="thyanbo-glacial-lake-checkbox">
+            <span style="width: 13px; height: 13px; display: inline-block; vertical-align: middle; border-radius: 3px; border: 1.5px solid #003366; margin-right: 5px;"></span>
+            Thyanbo Glacial Lake
+        </label><br>
+        <label>
+            <input type="checkbox" id="flood-area-detection-checkbox" checked>
+            <span style="background-color: #fd8d3c; opacity: 0.4; width: 15px; height: 15px; display: inline-block; vertical-align: middle; border-radius: 3px; margin-right: 5px;"></span>
+            Potential Exposed Region
+        </label>
+    </div>    
+    
+    <script>
+        maptilersdk.config.apiKey = 'beLTXJmGL8weKgdDngiU';
+        const map = new maptilersdk.Map({
+            container: 'map', // container id
+            style: maptilersdk.MapStyle.OUTDOOR,
+            center: [86.57086, 27.8259], // starting position [lng, lat]
+            zoom: 14, // starting zoom
+            terrain: false,
+            terrainControl: true,
+            fullscreenControl: "bottom-right",
+            geolocateControl: true,
+            // scaleControl: "top-right"
+        });
+
+        map.on('load', function () {
+            // Line data source and layer
+            map.addSource('river-thame', {
+                'type': 'geojson',
+                'data': 'vector/River_Thame.geojson'
+            });
+            map.addLayer({
+                'id': 'river-thame-layer',
+                'type': 'line',
+                'source': 'river-thame',
+                'layout': {
+                    'line-join': 'round',
+                    'line-cap': 'round'
+                },
+                'paint': {
+                    'line-color': 'blue', // Custom line color
+                    'line-width': 4 // Custom line width
+                }
+            });
+
+            // Polygon data sources and layers with custom styles
+            const polygons = [
+                { id: 'thyanbo-glacial-lake', data: 'vector/thyanbo_glacial_lake.geojson', fillColor: '#000000', fillOpacity: 0, borderColor: '#003366', borderWidth: 2 },
+                { id: 'august14', data: 'vector/August14.geojson', fillColor: '#33a02c', fillOpacity: 0.7, borderColor: '#9ecae1', borderWidth: 1 },
+                { id: 'august19', data: 'vector/August19.geojson', fillColor: '#e31a1c', fillOpacity: 0.7, borderColor: '#e31a1c', borderWidth: 1 },
+                { id: 'flood-area-detection', data: 'vector/Flood_Area_Detection.geojson', fillColor: '#fd8d3c', fillOpacity: 0.7, borderColor: '#fd8d3c', borderWidth: 1 }
+            ];
+
+            polygons.forEach(polygon => {
+                // Add polygon fill layer
+                map.addSource(polygon.id, {
+                    'type': 'geojson',
+                    'data': polygon.data
+                });
+
+                map.addLayer({
+                    'id': `${polygon.id}-fill-layer`,
+                    'type': 'fill',
+                    'source': polygon.id,
+                    'layout': {},
+                    'paint': {
+                        'fill-color': polygon.fillColor,
+                        'fill-opacity': polygon.fillOpacity
+                    }
+                });
+
+                // Add polygon border layer
+                map.addLayer({
+                    'id': `${polygon.id}-border-layer`,
+                    'type': 'line',
+                    'source': polygon.id,
+                    'layout': {
+                        'line-join': 'round',
+                        'line-cap': 'round'
+                    },
+                    'paint': {
+                        'line-color': polygon.borderColor,
+                        'line-width': polygon.borderWidth
+                    }
+                });
+
+                // Set the visibility of both fill and border layers
+                const visibility = ['august14', 'thyanbo-glacial-lake'].includes(polygon.id) ? 'none' : 'visible';
+                map.setLayoutProperty(`${polygon.id}-fill-layer`, 'visibility', visibility);
+                map.setLayoutProperty(`${polygon.id}-border-layer`, 'visibility', visibility);
+            });
+
+            // Add event listeners to toggle layers
+            document.getElementById('river-thame-checkbox').addEventListener('change', function() {
+                const visibility = this.checked ? 'visible' : 'none';
+                map.setLayoutProperty('river-thame-layer', 'visibility', visibility);
+            });
+
+            polygons.forEach(polygon => {
+                document.getElementById(`${polygon.id}-checkbox`).addEventListener('change', function() {
+                    const visibility = this.checked ? 'visible' : 'none';
+                    map.setLayoutProperty(`${polygon.id}-fill-layer`, 'visibility', visibility);
+                    map.setLayoutProperty(`${polygon.id}-border-layer`, 'visibility', visibility);
+                });
+            });
+
+        });
+
+        // Add geocoding control
+        const gc = new maptilersdkMaptilerGeocoder.GeocodingControl({});
+        map.addControl(gc, 'top-right');
+    </script>
+</body>
+</html>
