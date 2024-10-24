@@ -1,1 +1,415 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Hazard Susceptibility Map</title>
+
+    <!-- Leaflet CDN links for map functionality -->
+    <!-- Leaflet CSS for map styling -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.7.1/dist/leaflet.css" />
+    <!-- Leaflet JavaScript for map functionality -->
+    <script src="https://unpkg.com/leaflet@1.7.1/dist/leaflet.js"></script>
+
+    <!-- Leaflet Geocoder control CSS for adding a search box to the map -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet-control-geocoder/dist/Control.Geocoder.css" />
+    <!-- Font Awesome CSS for using icons within the map controls -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/font-awesome@4.7.0/css/font-awesome.min.css">
+    <!-- Leaflet Locate control CSS for adding a locate (geolocation) button to the map -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/leaflet.locatecontrol@0.74.4/dist/L.Control.Locate.min.css" />
+
+    <!-- Custom plugin CSS for Leaflet Measure control -->
+    <link rel="stylesheet" href="../Plugin/leaflet-measure.css">
+    <!-- Favicon for the webpage -->
+    <link rel="icon" href="Image/APN.png" type="image/png">
+
+    <style>
+        body {
+        margin: 0;
+        padding: 0;
+    }
+
+    #map {
+        height: 100vh;
+        width: 100%;
+    }
+
+    /* Style for the legend */
+    .legend {
+        background: white;
+        padding: 10px;
+        border-radius: 5px;
+        box-shadow: 0 0 5px rgba(0,0,0,0.5);
+        line-height: 15px;
+        color: #1f1e1e;
+        font-size: 14px;
+    }
+
+    .legend h4 {
+        margin: 5px;
+        margin-bottom: 10px;
+        font-size: 20px;
+        text-decoration: underline;
+    }
+
+    .legend div {
+        display: flex;
+        align-items: center;
+        margin-bottom: 5px;
+    }
+
+    .legend i {
+        width: 20px;
+        height: 13px;
+        display: inline-block;
+        margin-right: 8px;
+        border: 1px solid #fff;
+    }
+
+    .info.heading {
+        background-color: white;
+        padding: 1px 3px;
+        font-size: 16px; /* Reduced font size for mobile */
+        line-height: 1.02px;
+        color: #000000;
+        border: 1px solid #ccc;
+        border-radius: 5px;
+        box-shadow: 0 0 5px rgba(0,0,0,0.5);
+    }
+
+    .link {
+        background-color: white;
+        padding: 2px 3px;
+        font-size: 12px; /* Reduced font size for mobile */
+        line-height: 1.01px;
+        color: #000000;
+        border: 1px solid #ccc;
+        border-radius: 5px;
+        box-shadow: 0 0 5px rgba(0,0,0,0.5);
+        margin-bottom: 10px; /* Add margin to ensure it doesn't overlap */
+    }
+
+    .link a {
+        text-decoration: underline;
+        color: #4c00ff;
+    }
+
+    .link a:hover {
+        color: #ff0000;
+    }
+
+    /* Media queries for responsiveness */
+    @media only screen and (max-width: 768px) {
+        .info.heading {
+            font-size: 14px; /* Further reduced size for smaller screens */
+        }
+
+        .legend h4 {
+            font-size: 18px; /* Adjust legend title size */
+        }
+
+        .link {
+            font-size: 11px; /* Adjust link font size */
+        }
+    }
+
+    @media only screen and (max-width: 480px) {
+        .info.heading {
+            font-size: 12px; /* Further reduced size for smaller screens */
+        }
+
+        .legend h4 {
+            font-size: 16px; /* Further adjust legend title size */
+        }
+
+        .link {
+            font-size: 10px; /* Adjust link font size */
+        }
+    }
+
+    </style>
+</head>
+<body>
+    <!-- Map Container -->
+    <div id="map"></div>
+
+    <!-- Include necessary JavaScript libraries -->
+    <!-- GeoRaster: Library for working with GeoTIFF and other raster formats -->
+    <script src="https://unpkg.com/georaster"></script>
+
+    <!-- GeoRaster Layer for Leaflet: Plugin for adding GeoRaster layers to a Leaflet map -->
+    <script src="https://unpkg.com/georaster-layer-for-leaflet/dist/georaster-layer-for-leaflet.min.js"></script>
+
+    <!-- GeoBlaze: Library for performing raster data analysis in the browser -->
+    <script src="https://unpkg.com/geoblaze"></script>
+
+    <!-- Leaflet Geocoder control: Plugin for adding address search functionality to the map -->
+    <script src="https://unpkg.com/leaflet-control-geocoder/dist/Control.Geocoder.js"></script>
+
+    <!-- Leaflet Locate control: Plugin for adding geolocation functionality (find user's location) to the map -->
+    <script src="https://cdn.jsdelivr.net/npm/leaflet.locatecontrol@0.74.0/dist/L.Control.Locate.min.js" charset="utf-8"></script>
+
+    <!-- Custom plugin JavaScript for Leaflet Measure control -->
+    <script src="../Plugin/leaflet-measure.js"></script>
+
+    <!-- Custom plugin JavaScript for adding print functionality to the map -->
+    <script src="../Plugin/leaflet.browser.print.min.js"></script>
+
+    <script>
+        // Map initialization
+        var map = L.map("map").setView([27.709067998180583, 85.32703738434687], 14);
+
+        // Add OpenStreetMap as the base map layer
+        var osmLayer = L.tileLayer(
+            "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",
+            {
+                attribution:
+                    '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
+            }
+        ).addTo(map);
+
+        // Add Google Satellite layer as an alternative base map layer
+        var googleSat = L.tileLayer('http://{s}.google.com/vt/lyrs=s&x={x}&y={y}&z={z}',{
+        maxZoom: 20,
+        subdomains:['mt0','mt1','mt2','mt3']
+        });
+        googleSat.addTo(map);
+
+
+        // Load Fire Susceptibility Map GeoTIFF layer
+var fireSusceptibilityLayer;
+fetch("../Rasterdata/Fire_Susceptibility_Map.tif")
+    .then(response => response.arrayBuffer())
+    .then(arrayBuffer => {
+        parseGeoraster(arrayBuffer).then(georaster => {
+            fireSusceptibilityLayer = new GeoRasterLayer({
+                georaster: georaster,
+                opacity: 0.7,
+                pixelValuesToColorFn: function (value) {
+                    if (value < 0) {
+                        return "transparent";
+                    } else if (value < 0.0530) {
+                        return "#006837";
+                    } else if (value < 0.1476) {
+                        return "#89cd66";
+                    } else if (value < 0.2423) {
+                        return "#ffffbe";
+                    } else if (value < 0.3369) {
+                        return "#f1b673";
+                    } else {
+                        return "#e60000";
+                    }
+                },
+                resolution: 20000
+            });
+            // fireSusceptibilityLayer.addTo(map);
+            map.fitBounds(fireSusceptibilityLayer.getBounds());
+
+            // Load Risk GeoTIFF layer
+            var floodSusceptibilityLayer;
+            fetch("../Rasterdata/Flood_Susceptibility_Map.tif")
+                .then(response => response.arrayBuffer())
+                .then(arrayBuffer => {
+                    parseGeoraster(arrayBuffer).then(georaster => {
+                        floodSusceptibilityLayer = new GeoRasterLayer({
+                            georaster: georaster,
+                            opacity: 0.7,
+                            pixelValuesToColorFn: function (value) {
+                                if (value < 1) {
+                                    return "transparent";
+                                } else if (value == 1) {
+                                    return "#006837";
+                                } else if (value == 2) {
+                                    return "#89cd66";
+                                } else if (value == 3) {
+                                    return "#ffffbe";
+                                } else if (value == 4) {
+                                    return "#f1b673";
+                                } else {
+                                    return "#e60000";
+                                }
+                            },
+                            resolution: 20000
+                        });
+                        floodSusceptibilityLayer.addTo(map);
+
+                        // Add layer control after all layers have been added to the map
+                        var baseMaps = {
+                            "Google Map": googleSat,
+                            "OpenStreetMap": osmLayer,
+                        };
+
+                        var overlayMaps = {
+                            "Flood Layer": floodSusceptibilityLayer,
+                            "Fire Layer": fireSusceptibilityLayer,
+                            "Polygons": polygonLayer,
+                            "Linestring": linestringLayer,
+                            "Points": pointLayer,
+                            "KMC Wards": kmcWardLayer
+                        };
+
+                        L.control.layers(baseMaps, overlayMaps).addTo(map);
+                    });
+                });
+            });
+        });
+
+        
+        // Variable to store layers
+        var pointLayer, linestringLayer, polygonLayer, kmcWardLayer;
+
+        // Load GeoJSON data for KMC flood points
+        fetch('KMCflood/point.json')
+            .then(response => response.json())
+            .then(data => {
+                pointLayer = L.geoJSON(data, {
+                    pointToLayer: function (feature, latlng) {
+                        return L.circleMarker(latlng, {
+                            color: 'blue',
+                            fillColor: 'blue',
+                            fillOpacity: 0.5,
+                            radius: 1.5
+                        });
+                    },
+                }).addTo(map);
+            });
+
+        // Load GeoJSON data for KMC flood linestrings
+        fetch('KMCflood/linestring.geojson')
+            .then(response => response.json())
+            .then(data => {
+                linestringLayer = L.geoJSON(data, {
+                    style: {
+                        color: 'blue',
+                        weight: 1,
+                        fillOpacity: 0.5
+                    }
+                }).addTo(map);
+            });
+
+        // Load GeoJSON data for KMC flood polygons
+        fetch('../KMCflood/polygon.geojson')
+            .then(response => response.json())
+            .then(data => {
+                polygonLayer = L.geoJSON(data, {
+                    style: {
+                        color: 'blue',
+                        weight: 0,
+                        fillColor: 'blue',
+                        fillOpacity: 0.5
+                    }
+                }).addTo(map);
+            });
+
+        // Load GeoJSON data for KMC Wards
+        fetch('Nepaldata/KmcWard.json')
+            .then(response => response.json())
+            .then(data => {
+                kmcWardLayer = L.geoJSON(data, {
+                    style: {
+                        color: 'black',
+                        weight: 1,
+                        opacity: 0.8,
+                        dashArray: '3',
+                        fillOpacity: 0
+                    },
+
+                onEachFeature: function (feature, layer) {
+                // Add hover interaction for showing popup
+                layer.on({
+                    mouseover: function (e) {
+                        var layer = e.target;
+                        layer.setStyle({
+                            weight: 3,
+                            color: 'yellow',
+                            dashArray: '',
+                            fillOpacity: 0.1
+                        });
+                        layer.bindPopup("Ward No: " + feature.properties.NEW_WARD_N).openPopup();
+                    },
+                    mouseout: function (e) {
+                        var layer = e.target;
+                        layer.setStyle({
+                            color: 'black',
+                            weight: 1,
+                            opacity: 0.8,
+                            dashArray: '3',
+                            fillOpacity: 0
+                        });
+                        layer.closePopup();
+                    }
+                });
+                // Optionally bind popup on click
+                layer.bindPopup("Ward No: " + feature.properties.WARD);
+            }
+                }).addTo(map);
+
+            });
+
+         // Add legend control for GeoTIFF layer
+        var legend = L.control({ position: 'bottomleft' });
+
+        legend.onAdd = function (map) {
+            var div = L.DomUtil.create('div', 'legend');
+            div.innerHTML = '<h4> Risk Level</h4>' +
+                '<div><i style="background:#006837"></i> Very Low</div>' +
+                '<div><i style="background:#89cd66"></i> Low</div>' +
+                '<div><i style="background:#ffffbe"></i> Moderate</div>' +
+                '<div><i style="background:#f1b673"></i> High</div>' +
+                '<div><i style="background:#e60000"></i> Very High</div>';
+            return div;
+        };
+
+        legend.addTo(map);
+
+        // Add heading control for GeoTIFF layer
+            var heading = L.control({ position: 'topright' });
+
+            heading.onAdd = function (map) {
+                var div = L.DomUtil.create('div', 'info heading');
+                div.innerHTML = '<p><strong>Hazard Susceptibility Map</strong></p>';  // Replace with actual legend content
+                return div;
+            };
+
+            heading.addTo(map);
+
+            // Add link control
+            var link = L.control({ position: 'bottomright' });
+
+            link.onAdd = function (map) {
+                var div = L.DomUtil.create('div', 'link');
+                div.innerHTML = 
+                '<p><strong>Register Flooded Area:</strong> <a href="https://kmc.antarikchya.org.np/standing-water/" target="_blank">Click Here</a></p>';  // Replace 'your-link-here' with the actual URL
+                return div;
+            };
+
+            link.addTo(map);
+
+        // Add Locate control (find user's location) to the map
+        L.control.locate().addTo(map);
+
+        // Add Geocoder control (address search) to the map
+        L.Control.geocoder().addTo(map);
+
+        // Add print button to the map
+        L.control.browserPrint().addTo(map);
+
+        //Add scale bar on map
+        L.control.scale({position: 'topleft'}).addTo(map);
+
+        // Add Measure control to the map for measuring distances and areas
+        L.control.measure(
+            { 
+                primaryLengthUnit: 'Kiometers',
+                primaryAreaUnit: 'sqmeters',
+                secondaryAreaUnit: "undefined",
+                secondaryLengthUnit: 'meter '
+            }
+        ).addTo(map);
+
+    </script>
+
+</body>
+</html>
 
