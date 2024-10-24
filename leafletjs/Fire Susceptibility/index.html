@@ -1,0 +1,487 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Fire Susceptibility Map</title>
+
+    <!-- Leaflet CDN links for map functionality -->
+    <!-- Leaflet CSS for map styling -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.7.1/dist/leaflet.css" />
+    <!-- Leaflet JavaScript for map functionality -->
+    <script src="https://unpkg.com/leaflet@1.7.1/dist/leaflet.js"></script>
+
+    <!-- Leaflet Geocoder control CSS for adding a search box to the map -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet-control-geocoder/dist/Control.Geocoder.css" />
+    <!-- Font Awesome CSS for using icons within the map controls -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/font-awesome@4.7.0/css/font-awesome.min.css">
+    <!-- Leaflet Locate control CSS for adding a locate (geolocation) button to the map -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/leaflet.locatecontrol@0.74.4/dist/L.Control.Locate.min.css" />
+
+    <!-- Custom plugin CSS for Leaflet Measure control -->
+    <link rel="stylesheet" href="Plugin/leaflet-measure.css">
+    <!-- Favicon for the webpage -->
+    <link rel="icon" href="Image/APN.png" type="image/png">
+
+    <style>
+        body {
+        margin: 0;
+        padding: 0;
+    }
+
+    #map {
+        height: 100vh;
+        width: 100%;
+    }
+
+    /* Style for the legend */
+    .legend {
+        background: white;
+        padding: 10px;
+        border-radius: 5px;
+        box-shadow: 0 0 5px rgba(0,0,0,0.5);
+        line-height: 15px;
+        color: #1f1e1e;
+        font-size: 14px;
+    }
+
+    .legend h4 {
+        margin: 5px;
+        margin-bottom: 10px;
+        font-size: 20px;
+        text-decoration: underline;
+    }
+
+    .legend div {
+        display: flex;
+        align-items: center;
+        margin-bottom: 5px;
+    }
+
+    .legend i {
+        width: 20px;
+        height: 13px;
+        display: inline-block;
+        margin-right: 8px;
+        border: 1px solid #fff;
+    }
+
+    .info.heading {
+        background-color: white;
+        padding: 1px 3px;
+        font-size: 16px; /* Reduced font size for mobile */
+        line-height: 1.02px;
+        color: #000000;
+        border: 1px solid #ccc;
+        border-radius: 5px;
+        box-shadow: 0 0 5px rgba(0,0,0,0.5);
+    }
+
+    .link {
+        background-color: white;
+        padding: 2px 3px;
+        font-size: 12px; /* Reduced font size for mobile */
+        line-height: 1.01px;
+        color: #000000;
+        border: 1px solid #ccc;
+        border-radius: 5px;
+        box-shadow: 0 0 5px rgba(0,0,0,0.5);
+        margin-bottom: 10px; /* Add margin to ensure it doesn't overlap */
+    }
+
+    .link a {
+        text-decoration: underline;
+        color: #4c00ff;
+    }
+
+    .link a:hover {
+        color: #ff0000;
+    }
+
+    /* Media queries for responsiveness */
+    @media only screen and (max-width: 768px) {
+        .info.heading {
+            font-size: 14px; /* Further reduced size for smaller screens */
+        }
+
+        .legend h4 {
+            font-size: 18px; /* Adjust legend title size */
+        }
+
+        .link {
+            font-size: 11px; /* Adjust link font size */
+        }
+    }
+
+    @media only screen and (max-width: 480px) {
+        .info.heading {
+            font-size: 12px; /* Further reduced size for smaller screens */
+        }
+
+        .legend h4 {
+            font-size: 16px; /* Further adjust legend title size */
+        }
+
+        .link {
+            font-size: 10px; /* Adjust link font size */
+        }
+    }
+
+    </style>
+</head>
+<body>
+    <!-- Map Container -->
+    <div id="map"></div>
+
+    <!-- Include necessary JavaScript libraries -->
+    <!-- GeoRaster: Library for working with GeoTIFF and other raster formats -->
+    <script src="https://unpkg.com/georaster"></script>
+
+    <!-- GeoRaster Layer for Leaflet: Plugin for adding GeoRaster layers to a Leaflet map -->
+    <script src="https://unpkg.com/georaster-layer-for-leaflet/dist/georaster-layer-for-leaflet.min.js"></script>
+
+    <!-- GeoBlaze: Library for performing raster data analysis in the browser -->
+    <script src="https://unpkg.com/geoblaze"></script>
+
+    <!-- Leaflet Geocoder control: Plugin for adding address search functionality to the map -->
+    <script src="https://unpkg.com/leaflet-control-geocoder/dist/Control.Geocoder.js"></script>
+
+    <!-- Leaflet Locate control: Plugin for adding geolocation functionality (find user's location) to the map -->
+    <script src="https://cdn.jsdelivr.net/npm/leaflet.locatecontrol@0.74.0/dist/L.Control.Locate.min.js" charset="utf-8"></script>
+
+    <!-- Custom plugin JavaScript for Leaflet Measure control -->
+    <script src="Plugin/leaflet-measure.js"></script>
+
+    <!-- Custom plugin JavaScript for adding print functionality to the map -->
+    <script src="Plugin/leaflet.browser.print.min.js"></script>
+
+    <script>
+        // Initialize the map
+        var map = L.map("map").setView([27.709067998180583, 85.32703738434687], 12);
+
+        // Add OpenStreetMap as base layer
+        var osmLayer = L.tileLayer(
+            "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",
+            {
+                attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
+            }
+        ).addTo(map);
+
+        // Google Satellite Layer
+        var googleSat = L.tileLayer('http://{s}.google.com/vt/lyrs=s&x={x}&y={y}&z={z}', {
+            maxZoom: 20,
+            subdomains: ['mt0', 'mt1', 'mt2', 'mt3']
+        });
+        googleSat.addTo(map);
+
+        // Variables to hold GeoTIFF and GeoJSON layers
+        var geotiffLayer, transmission_line, fire_brigade, fuel_station, population, lulc, kmcWardLayer;
+
+        // Function to add layers and control once all layers are loaded
+        function addLayersAndControl() {
+            // Base layers
+            var baseMaps = {
+                "Google Map": googleSat,
+                "OpenStreetMap": osmLayer,
+            };
+
+            // Overlay layers
+            var overlayMaps = {
+                "Fire Susceptibility": geotiffLayer,
+                "Transmission Line": transmission_line,
+                "Fire Brigade": fire_brigade,
+                "Fuel Station": fuel_station,
+                "Population Density": population,
+                "LULC": lulc,
+                "KMC Wards": kmcWardLayer
+            };
+
+            // Add control to toggle between layers
+            L.control.layers(baseMaps, overlayMaps).addTo(map);
+        }
+
+        // Fetch Fire Susceptibility GeoTIFF
+        fetch("rasterdata/risk.tif")
+            .then((response) => response.arrayBuffer())
+            .then((arrayBuffer) => {
+                parseGeoraster(arrayBuffer).then((georaster) => {
+                    geotiffLayer = new GeoRasterLayer({
+                        georaster: georaster,
+                        opacity: 0.8,
+                        pixelValuesToColorFn: function (value) {
+                            if (value > 0.274167671) {
+                                return "#c3140b"; // Class 5
+                            } else if (value > 0.220724277) {
+                                return "#ff694b"; // Class 4
+                            } else if (value > 0.174703576) {
+                                return "#ffde00"; // Class 3
+                            } else if (value > 0.121260182) {
+                                return "#79c91d"; // Class 2
+                            } else if (value > 0.0529714) {
+                                return "#1a7905"; // Class 1
+                            } else {
+                                return "transparent"; // No data
+                            }
+                        },
+                        resolution: 1000
+                    });
+                    geotiffLayer.addTo(map);
+                    map.fitBounds(geotiffLayer.getBounds());
+                    addLayersAndControl();  // Call after GeoTIFF is loaded
+                });
+            });
+
+        // Fetch Transmission Line GeoTIFF (Similar process)
+        fetch("parameter/parameter_1_transmission_line.tif")
+            .then((response) => response.arrayBuffer())
+            .then((arrayBuffer) => {
+                parseGeoraster(arrayBuffer).then((georaster) => {
+                    transmission_line = new GeoRasterLayer({
+                        georaster: georaster,
+                        opacity: 0.7,
+                        pixelValuesToColorFn: function (value) {
+                            if (value > 0.253630996) {
+                                return "#c3140b"; // Class 5
+                            } else if (value > 0.171456993) {
+                                return "#ff694b"; // Class 4
+                            } else if (value > 0.071076997) {
+                             return "#ffde00"; // Class 3
+                            } else if (value > 0.040307999) {
+                                return "#79c91d"; // Class 2
+                            } else if (value > 0.040207999) {
+                                return "#1a7905"; // Class 1
+                            } else {
+                                return "transparent"; // No data
+                            }
+                        },
+                        resolution: 1000
+                    });
+                    addLayersAndControl();  // Call after transmission line layer is loaded
+                });
+            });
+
+        // Fetch Fire Brigade GeoTIFF (Similar process)
+        fetch("parameter/parameter_2_fire_brigade.tif")
+            .then((response) => response.arrayBuffer())
+            .then((arrayBuffer) => {
+                parseGeoraster(arrayBuffer).then((georaster) => {
+                    fire_brigade = new GeoRasterLayer({
+                        georaster: georaster,
+                        opacity: 0.7,
+                        pixelValuesToColorFn: function (value) {
+                            if (value > 0.300343887) {
+                                return "#c3140b"; // Class 5
+                            } else if (value > 0.260343887) {
+                                return "#ff694b"; // Class 4
+                            } else if (value > 0.137062944) {
+                                return "#ffde00"; // Class 3
+                            } else if (value > 0.078846943) {
+                                return "#79c91d"; // Class 2
+                            } else if (value > 0.040207999) {
+                                return "#1a7905"; // Class 1
+                            } else {
+                                return "transparent"; // No data
+                            }
+                        },
+                        resolution: 1000, // Optional parameter for adjusting display resolution
+                        });
+                        addLayersAndControl();  // Call after Fire Brigade layer is loaded
+                    });
+                });
+
+        // Fetch Fuel Station GeoTIFF (Similar process)        
+        fetch("parameter/parameter_3_fuel_station.tif")
+            .then((response) => response.arrayBuffer())
+            .then((arrayBuffer) => {
+                parseGeoraster(arrayBuffer).then((georaster) => {
+                    fuel_station = new GeoRasterLayer({
+                        georaster: georaster,
+                        opacity: 0.7,
+                        pixelValuesToColorFn: function (value) {
+                            if (value > 0.260343887) {
+                                return "#c3140b"; // Class 5
+                            } else if (value > 0.248464782) {
+                                return "#ff694b"; // Class 4
+                            } else if (value > 0.161308381) {
+                                return "#ffde00"; // Class 3
+                            } else if (value > 0.07244303) {
+                                return "#79c91d"; // Class 2
+                            } else if (value > 0.039972998 ) {
+                                return "#1a7905"; // Class 1
+                            } else {
+                                return "transparent"; // No data
+                            }
+                        },
+                        resolution: 1000, // Optional parameter for adjusting display resolution
+                        });
+                        addLayersAndControl();  // Call after Fuel Station layer is loaded
+                    });
+                });
+
+
+        // Fetch Population Density GeoTIFF
+        fetch("parameter/parameter_4_population.tif")
+            .then((response) => response.arrayBuffer())
+            .then((arrayBuffer) => {
+                parseGeoraster(arrayBuffer).then((georaster) => {
+                    population = new GeoRasterLayer({
+                        georaster: georaster,
+                        opacity: 0.7,
+                        pixelValuesToColorFn: function (value) {
+                            if (value > 0.4765231907367706) {
+                                return "#c3140b"; // Class 5
+                            } else if (value > 0.258655551 ) {
+                                return "#ff694b"; // Class 4
+                            } else if (value > 0.141211276 ) {
+                                return "#ffde00"; // Class 3
+                            } else if (value > 0.078233911) {
+                                return "#79c91d"; // Class 2
+                            } else if (value > 0.02249 ) {
+                                return "#1a7905"; // Class 1
+                            } else {
+                                return "transparent"; // No data
+                            }
+                        },
+                        resolution: 1000
+                    });
+                    addLayersAndControl();  // Call after population layer is loaded
+                });
+            });
+
+        // Fetch LULC GeoTIFF
+        fetch("parameter/parameter_5_LULC.tif")
+            .then((response) => response.arrayBuffer())
+            .then((arrayBuffer) => {
+                parseGeoraster(arrayBuffer).then((georaster) => {
+                    lulc = new GeoRasterLayer({
+                        georaster: georaster,
+                        opacity: 0.7,
+                        pixelValuesToColorFn: function (value) {
+                            if (value == 5) {
+                                return "#c3140b"; // Class 5
+                            } else if (value == 4 ) {
+                                return "#ff694b"; // Class 4
+                            } else if (value == 2) {
+                                return "#ffde00"; // Class 3
+                            } else if (value == 1) {
+                                return "#79c91d"; // Class 2
+                            } else if (value == 3 ) {
+                                return "#1a7905"; // Class 1
+                            } else {
+                                return "transparent"; // No data
+                            }
+                        },
+                        resolution: 1000
+                    });
+                    addLayersAndControl();  // Call after lulc layer is loaded
+                });
+            });
+
+        // Load KMC Wards GeoJSON
+        fetch('Nepaldata/KmcWard.json')
+            .then(response => response.json())
+            .then(data => {
+                kmcWardLayer = L.geoJSON(data, {
+                    style: {
+                        color: 'black',
+                        weight: 1,
+                        opacity: 0.8,
+                        dashArray: '3',
+                        fillOpacity: 0
+                    },
+                    onEachFeature: function (feature, layer) {
+                        layer.on({
+                            mouseover: function (e) {
+                                var layer = e.target;
+                                layer.setStyle({
+                                    weight: 3,
+                                    color: 'yellow',
+                                    dashArray: '',
+                                    fillOpacity: 0.1
+                                });
+                                layer.bindPopup("Ward No: " + feature.properties.NEW_WARD_N).openPopup();
+                            },
+                            mouseout: function (e) {
+                                var layer = e.target;
+                                layer.setStyle({
+                                    color: 'black',
+                                    weight: 1,
+                                    opacity: 0.8,
+                                    dashArray: '3',
+                                    fillOpacity: 0
+                                });
+                                layer.closePopup();
+                            }
+                        });
+                        layer.bindPopup("Ward No: " + feature.properties.NEW_WARD_N);
+                    }
+                }).addTo(map);
+                addLayersAndControl();  // Call after KMC ward layer is loaded
+            });
+
+         // Add legend control for GeoTIFF layer
+        var legend = L.control({ position: 'bottomleft' });
+
+        legend.onAdd = function (map) {
+            var div = L.DomUtil.create('div', 'legend');
+            div.innerHTML = '<h4> Risk Level</h4>' +
+                '<div><i style="background:#1a7905"></i> Very Low</div>' +
+                '<div><i style="background:#79c91d"></i> Low</div>' +
+                '<div><i style="background:#ffde00"></i> Moderate</div>' +
+                '<div><i style="background:#ff694b"></i> High</div>' +
+                '<div><i style="background:#c3140b"></i> Very High</div>';
+            return div;
+        };
+
+        legend.addTo(map);
+
+        // Add heading control for GeoTIFF layer
+        var heading = L.control({ position: 'topright' });
+
+            heading.onAdd = function (map) {
+                var div = L.DomUtil.create('div', 'info heading');
+                div.innerHTML = '<p><strong>Fire Susceptibility Map</strong></p>';  // Replace with actual legend content
+                return div;
+            };
+
+            heading.addTo(map);
+
+            // // Add link control
+            // var link = L.control({ position: 'bottomright' });
+
+            // link.onAdd = function (map) {
+            //     var div = L.DomUtil.create('div', 'link');
+            //     div.innerHTML = 
+            //     '<p><strong>Register Flooded Area:</strong> <a href="https://kmc.antarikchya.org.np/standing-water/" target="_blank">Click Here</a></p>';  // Replace 'your-link-here' with the actual URL
+            //     return div;
+            // };
+
+            // link.addTo(map);
+
+        // Add Locate control (find user's location) to the map
+        L.control.locate().addTo(map);
+
+        // Add Geocoder control (address search) to the map
+        L.Control.geocoder().addTo(map);
+
+        // Add print button to the map
+        L.control.browserPrint().addTo(map);
+
+        //Add scale bar on map
+        L.control.scale({position: 'topleft'}).addTo(map);
+
+        // Add Measure control to the map for measuring distances and areas
+        L.control.measure(
+            { 
+                primaryLengthUnit: 'Kiometers',
+                primaryAreaUnit: 'sqmeters',
+                secondaryAreaUnit: "undefined",
+                secondaryLengthUnit: 'meter '
+            }
+        ).addTo(map);
+
+    </script>
+
+</body>
+</html>
