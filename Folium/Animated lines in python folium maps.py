@@ -1,0 +1,15 @@
+# Import required libraries
+import folium
+from folium.plugins import AntPath
+
+# create a map object
+map = folium.Map(location=[27.70453351431034, 85.31498618630036], zoom_start=13)
+
+# latitude longitude coordinates of the lines
+ringroad =  [[27.6788335770231,  85.34941280066141], [27.684046066305044, 85.34901032550516],[27.694381206702374, 85.31973025787039],[27.690060167873867, 85.31716447874749],[ 27.693935746688993, 85.31379374931214],[27.698390265014552, 85.30141763824992],[27.69840289688102, 85.29958630931156],[27.69662723612474, 85.29351344149461],[27.69544409002097, 85.29248927705885],[27.695670962701016, 85.2908162529854],[27.693268757449815, 85.28156186757406]],
+
+# create antpaths and add to map
+AntPath(ringroad, delay=800, dash_array=[10,15], color="red", weight=3, pulse_color= "blue").add_to(map)
+
+# save the map object as a html
+map.save('map.html')
